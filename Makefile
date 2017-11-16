@@ -24,6 +24,7 @@ build:	fmt bin
 deps:
 	@GOPATH=$(GOPATH) go get -u "github.com/mattn/go-sqlite3"
 	@GOPATH=$(GOPATH) go install "github.com/mattn/go-sqlite3"
+	@GOPATH=$(GOPATH) go get -u "golang.org/x/sync/errgroup"
 	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/go-whosonfirst-geojson-v2"
 	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/go-whosonfirst-index"
 	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/go-whosonfirst-log"

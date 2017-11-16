@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/feature"
@@ -11,6 +12,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-sqlite"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/tables"
+	"golang.org/x/sync/errgroup"
 	"io"
 	"os"
 	"strings"
@@ -118,17 +120,37 @@ func main() {
 		}
 
 		db.Lock()
-
 		defer db.Unlock()
+
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		g, ctx := errgroup.WithContext(ctx)
 
 		for _, t := range to_index {
 
-			err = t.IndexFeature(db, f)
+			g.Go(func() error {
 
-			if err != nil {
-				logger.Warning("failed to index feature (%s) in '%s' table because %s", path, t.Name(), err)
-				return err
-			}
+				err := t.IndexFeature(db, f)
+
+				if err != nil {
+					msg := fmt.Sprintf("failed to index feature (%s) in '%s' table because %s", path, t.Name(), err)
+					return errors.New(msg)
+				}
+
+				select {
+				    case <-ctx.Done():
+				    return ctx.Err()    
+            			}
+
+				return nil
+			})
+		}
+
+		err = g.Wait()
+
+		if err != nil {
+			return err
 		}
 
 		return nil
